@@ -8,10 +8,13 @@ import org.geysermc.floodgate.api.FloodgateApi;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.thecoberto.whatsnew.WhatsNewPlugin.CONTENTS;
+import static com.thecoberto.whatsnew.WhatsNewPlugin.PAST;
+
 /**
  * The menu for Bedrock players joining through Geyser: a Bedrock form sent with Floodgate.
- * Only loaded when Floodgate is installed. Same screens as the Java menu; closing the
- * form (X) or pressing Close/Done counts as having read it.
+ * Only loaded when Floodgate is installed. Same screens as the Java menu, Past Updates
+ * included; closing the form (X) or pressing Close/Done counts as having read it.
  */
 final class BedrockMenu {
 	private final WhatsNewPlugin plugin;
@@ -24,14 +27,19 @@ final class BedrockMenu {
 		return FloodgateApi.getInstance().isFloodgatePlayer(player.getUniqueId());
 	}
 
-	/** screen -1 is the contents, 0.. are pages. */
 	void open(Player player, WhatsNewDoc doc, int screen) {
-		if (screen < 0 || screen >= doc.pages.size()) contents(player, doc);
+		Updates updates = plugin.updates();
+		if (screen == PAST) past(player, updates);
+		else if (screen < 0 || screen >= doc.pages.size()) contents(player, updates, doc);
 		else page(player, doc, screen);
 	}
 
-	private void contents(Player player, WhatsNewDoc doc) {
-		StringBuilder body = new StringBuilder(Render.legacy(doc.intro));
+	private void contents(Player player, Updates updates, WhatsNewDoc doc) {
+		boolean latest = updates.isLatest(doc);
+		StringBuilder body = new StringBuilder();
+		String date = updates.date(doc);
+		if (!latest && !date.isEmpty()) body.append("§8").append(date).append("\n\n");
+		body.append(Render.legacy(doc.intro));
 		if (!doc.pages.isEmpty()) {
 			if (!body.isEmpty()) body.append("\n\n");
 			body.append("§7Pick a section, or start from the top.");
@@ -49,9 +57,34 @@ final class BedrockMenu {
 				actions.add(() -> open(player, doc, page));
 			}
 		}
+		if (latest && !updates.past(plugin.historyLimit()).isEmpty()) {
+			form.button("§3Past Updates");
+			actions.add(() -> open(player, doc, PAST));
+		} else if (!latest) {
+			form.button("§3Back to Past Updates");
+			actions.add(() -> open(player, doc, PAST));
+		}
 		form.button("Close");
-		actions.add(() -> plugin.markSeen(player, doc));
-		send(player, doc, form, actions);
+		actions.add(() -> plugin.markSeen(player));
+		send(player, form, actions);
+	}
+
+	private void past(Player player, Updates updates) {
+		List<Runnable> actions = new ArrayList<>();
+		SimpleForm.Builder form = SimpleForm.builder().title("Past Updates").content("§7Pick an update to read what it brought.");
+		for (WhatsNewDoc d : updates.past(plugin.historyLimit())) {
+			String date = updates.date(d);
+			form.button(date.isEmpty() ? d.title : d.title + "\n§8" + date);
+			actions.add(() -> open(player, d, CONTENTS));
+		}
+		if (!updates.isEmpty()) {
+			WhatsNewDoc latest = updates.latest();
+			form.button("§2Latest: " + latest.title);
+			actions.add(() -> open(player, latest, CONTENTS));
+		}
+		form.button("Close");
+		actions.add(() -> plugin.markSeen(player));
+		send(player, form, actions);
 	}
 
 	private void page(Player player, WhatsNewDoc doc, int index) {
@@ -66,20 +99,20 @@ final class BedrockMenu {
 			actions.add(() -> open(player, doc, index + 1));
 		}
 		form.button("Contents");
-		actions.add(() -> open(player, doc, -1));
+		actions.add(() -> open(player, doc, CONTENTS));
 		form.button(last ? "Done" : "Close");
-		actions.add(() -> plugin.markSeen(player, doc));
-		send(player, doc, form, actions);
+		actions.add(() -> plugin.markSeen(player));
+		send(player, form, actions);
 	}
 
-	private void send(Player player, WhatsNewDoc doc, SimpleForm.Builder form, List<Runnable> actions) {
+	private void send(Player player, SimpleForm.Builder form, List<Runnable> actions) {
 		// Floodgate calls back off the main thread
 		form.validResultHandler(response -> {
 			int id = response.clickedButtonId();
 			if (id >= 0 && id < actions.size()) Bukkit.getScheduler().runTask(plugin, actions.get(id));
 		});
 		// Closed with X counts as read; a form that failed to show doesn't
-		form.closedResultHandler(() -> Bukkit.getScheduler().runTask(plugin, () -> plugin.markSeen(player, doc)));
+		form.closedResultHandler(() -> Bukkit.getScheduler().runTask(plugin, () -> plugin.markSeen(player)));
 		FloodgateApi.getInstance().sendForm(player.getUniqueId(), form);
 	}
 }
