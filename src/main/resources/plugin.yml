@@ -1,0 +1,16 @@
+name: WhatsNew
+version: '${version}'
+main: com.thecoberto.whatsnew.WhatsNewPlugin
+api-version: '1.21'
+softdepend: [floodgate]
+description: A What's New menu players see once after each server update, and any time with /whatsnew.
+author: TheCoberto
+commands:
+  whatsnew:
+    description: See what's new on the server
+    usage: /whatsnew [reload]
+    aliases: [updates]
+permissions:
+  whatsnew.admin:
+    description: Reload whats-new.md with /whatsnew reload
+    default: op

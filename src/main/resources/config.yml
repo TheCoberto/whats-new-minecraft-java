@@ -1,0 +1,12 @@
+# What's New. The menu's text is in whats-new.md next to this file. It's re-read
+# whenever it changes, so there's no need to restart (or use /whatsnew reload).
+
+# Open the menu when a player joins and hasn't closed this update's menu yet.
+show-on-join: true
+
+# Seconds to wait after joining before it opens, so it doesn't fight with loading screens.
+join-delay-seconds: 4
+
+# Show it to players joining for the very first time too. Off: they're marked as having
+# seen this update (they get the welcome menus instead) and see the next one.
+show-to-new-players: false
