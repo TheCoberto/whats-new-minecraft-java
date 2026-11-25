@@ -58,6 +58,11 @@ public final class WhatsNewDoc {
 	}
 
 	public static WhatsNewDoc parse(String markdown) {
+		return parse(markdown, null);
+	}
+
+	/** fallbackUpdate (the file name) is the id when there's no "update:" line; null uses the title. */
+	public static WhatsNewDoc parse(String markdown, String fallbackUpdate) {
 		String text = markdown.replace("\r", "").replaceAll("(?s)<!--.*?-->", "");
 		String title = "What's New";
 		String update = "";
@@ -102,7 +107,7 @@ public final class WhatsNewDoc {
 		trim(intro);
 		for (Page p : pages) trim(p.lines());
 		// No update line: use the title, so a new title still counts as a new update
-		if (update.isEmpty() && !(pages.isEmpty() && intro.isEmpty())) update = title;
+		if (update.isEmpty() && !(pages.isEmpty() && intro.isEmpty())) update = fallbackUpdate != null ? fallbackUpdate : title;
 		return new WhatsNewDoc(title, update, intro, pages);
 	}
 

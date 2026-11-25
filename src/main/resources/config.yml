@@ -1,5 +1,7 @@
-# What's New. The menu's text is in whats-new.md next to this file. It's re-read
-# whenever it changes, so there's no need to restart (or use /whatsnew reload).
+# What's New. Each update is its own file in the updates folder next to this file,
+# named with its date first (2026-11-24-high-stakes.md); the newest pops up on join and
+# older ones are under Past Updates. Files are re-read
+# whenever they change, so there's no need to restart (or use /whatsnew reload).
 
 # Open the menu when a player joins and hasn't closed this update's menu yet.
 show-on-join: true
@@ -10,3 +12,6 @@ join-delay-seconds: 4
 # Show it to players joining for the very first time too. Off: they're marked as having
 # seen this update (they get the welcome menus instead) and see the next one.
 show-to-new-players: false
+
+# How many past updates the Past Updates screen lists, newest first.
+history-limit: 10

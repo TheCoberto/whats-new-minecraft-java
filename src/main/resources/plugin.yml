@@ -8,7 +8,7 @@ author: TheCoberto
 commands:
   whatsnew:
     description: See what's new on the server
-    usage: /whatsnew [reload]
+    usage: /whatsnew [history|reload]
     aliases: [updates]
 permissions:
   whatsnew.admin:
