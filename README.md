@@ -36,7 +36,7 @@ Intro text, on the first screen.
 <!-- left out of the menu -->
 ```
 
-A new file is a new update: everyone sees it once. Editing a file (a typo, say) doesn't show it again to players who closed it, unless its `update:` line changes. The Bedrock add-on ([whats-new](https://github.com/TheCoberto/whats-new)) reads the same format.
+A new file is a new update: everyone sees it once. Adding a page (a new `##` heading) to the current update shows just that page to players who already read it: the menu opens on the first new page, and new pages are marked **New:**. Editing an existing page (a typo, say) doesn't show anything again, because pages are matched by their title (renaming a page counts as a new page). Changing the `update:` line shows the whole update to everyone again. The Bedrock add-on ([whats-new](https://github.com/TheCoberto/whats-new)) reads the same format.
 
 Upgrading from 1.0.0: the old single `plugins/WhatsNew/whats-new.md` is still used while the `updates` folder is empty. Keep its `update:` line when you move it into the folder, so players who already read it don't see it again.
 
@@ -48,7 +48,7 @@ Upgrading from 1.0.0: the old single `plugins/WhatsNew/whats-new.md` is still us
 
 `config.yml`: `show-on-join`, `join-delay-seconds` (default 4), `show-to-new-players` (default false) and `history-limit` (how many past updates are listed, default 10).
 
-Which update a player has read is saved on the player (`whatsnew:seen`).
+Which update a player has read, and its page titles at the time, are saved on the player (`whatsnew:seen`, `whatsnew:seen_pages`). Players who read an update before 1.2.0 have no page list, so pages added later aren't flagged for them until they next close the menu.
 
 ## Build
 ```

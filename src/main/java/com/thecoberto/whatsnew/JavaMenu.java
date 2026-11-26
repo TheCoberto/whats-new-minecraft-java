@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static com.thecoberto.whatsnew.WhatsNewPlugin.CONTENTS;
 import static com.thecoberto.whatsnew.WhatsNewPlugin.PAST;
@@ -58,9 +59,14 @@ final class JavaMenu {
 		List<ActionButton> buttons = new ArrayList<>();
 		if (!doc.pages.isEmpty()) {
 			buttons.add(button(Component.text("Start reading ▶", NamedTextColor.GREEN), () -> open(player, doc, 0)));
+			Set<Integer> fresh = plugin.newPages(player, doc);
 			for (int i = 0; i < doc.pages.size(); i++) {
 				int page = i;
-				buttons.add(button(Component.text(doc.pages.get(i).title()), () -> open(player, doc, page)));
+				Component label = fresh.contains(i)
+						? Component.text("New: ", NamedTextColor.GREEN).decorate(TextDecoration.BOLD)
+								.append(Component.text(doc.pages.get(i).title(), NamedTextColor.WHITE).decoration(TextDecoration.BOLD, false))
+						: Component.text(doc.pages.get(i).title());
+				buttons.add(button(label, () -> open(player, doc, page)));
 			}
 		}
 		if (latest && !updates.past(plugin.historyLimit()).isEmpty()) {
@@ -93,8 +99,11 @@ final class JavaMenu {
 		boolean last = index == doc.pages.size() - 1;
 
 		List<DialogBody> body = new ArrayList<>();
-		body.add(DialogBody.plainMessage(
-				Component.text(page.title(), NamedTextColor.YELLOW).decorate(TextDecoration.BOLD), TEXT_WIDTH));
+		Component heading = Component.text(page.title(), NamedTextColor.YELLOW).decorate(TextDecoration.BOLD);
+		if (plugin.newPages(player, doc).contains(index)) {
+			heading = Component.text("New: ", NamedTextColor.GREEN).decorate(TextDecoration.BOLD).append(heading);
+		}
+		body.add(DialogBody.plainMessage(heading, TEXT_WIDTH));
 		if (Render.hasContent(page.lines())) body.add(DialogBody.plainMessage(Render.lines(page.lines()), TEXT_WIDTH));
 		body.add(DialogBody.plainMessage(
 				Component.text("Page " + (index + 1) + " of " + doc.pages.size(), NamedTextColor.DARK_GRAY), TEXT_WIDTH));

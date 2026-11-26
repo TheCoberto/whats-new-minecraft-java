@@ -7,6 +7,7 @@ import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static com.thecoberto.whatsnew.WhatsNewPlugin.CONTENTS;
 import static com.thecoberto.whatsnew.WhatsNewPlugin.PAST;
@@ -51,9 +52,10 @@ final class BedrockMenu {
 		if (!doc.pages.isEmpty()) {
 			form.button("§2Start reading");
 			actions.add(() -> open(player, doc, 0));
+			Set<Integer> fresh = plugin.newPages(player, doc);
 			for (int i = 0; i < doc.pages.size(); i++) {
 				int page = i;
-				form.button(doc.pages.get(i).title());
+				form.button(fresh.contains(i) ? "§2§lNew:§r " + doc.pages.get(i).title() : doc.pages.get(i).title());
 				actions.add(() -> open(player, doc, page));
 			}
 		}
@@ -93,7 +95,8 @@ final class BedrockMenu {
 		String body = Render.legacy(page.lines()) + "\n\n§8Page " + (index + 1) + " of " + doc.pages.size();
 
 		List<Runnable> actions = new ArrayList<>();
-		SimpleForm.Builder form = SimpleForm.builder().title(page.title()).content(body);
+		boolean isNew = plugin.newPages(player, doc).contains(index);
+		SimpleForm.Builder form = SimpleForm.builder().title(isNew ? "New: " + page.title() : page.title()).content(body);
 		if (!last) {
 			form.button("§2Next: " + doc.pages.get(index + 1).title());
 			actions.add(() -> open(player, doc, index + 1));
