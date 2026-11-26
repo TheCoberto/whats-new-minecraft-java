@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+- **New pages pop up on their own**: adding a page (`##`) to the current update shows it to players who already read that update. The menu opens straight on the first new page, and new pages are marked **New:** in the contents and on the page. No need to change the `update:` line any more
+- Editing an existing page (a typo, a reworded bullet) doesn't show anything again; pages are matched by their title
+- A new update file still pops up in full, as before
+
 ## 1.1.0
 
 - Update history: one file per update in plugins/WhatsNew/updates/ (named with its date first). The newest pops up on join; older ones are under **Past Updates**, newest first, with their dates

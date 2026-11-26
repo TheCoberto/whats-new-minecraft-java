@@ -15,7 +15,11 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * What's New: a menu of what changed in each server update, one file per update in
@@ -32,6 +36,8 @@ public final class WhatsNewPlugin extends JavaPlugin implements Listener {
 	static final int CONTENTS = -1, PAST = -2;
 
 	private NamespacedKey seenKey;
+	/** The page titles of that update the player had when they closed it, one per line. */
+	private NamespacedKey pagesKey;
 	private Path dir;
 	private Path legacy;
 	private String loadedSignature;
@@ -43,6 +49,7 @@ public final class WhatsNewPlugin extends JavaPlugin implements Listener {
 	public void onEnable() {
 		saveDefaultConfig();
 		seenKey = new NamespacedKey(this, "seen");
+		pagesKey = new NamespacedKey(this, "seen_pages");
 		dir = getDataFolder().toPath().resolve("updates");
 		legacy = getDataFolder().toPath().resolve("whats-new.md");
 		try {
@@ -90,16 +97,49 @@ public final class WhatsNewPlugin extends JavaPlugin implements Listener {
 
 	// ---------- Seen ----------
 
+	/** Whether the player has closed this update's menu (pages added since then don't matter here). */
 	boolean hasSeen(Player player, WhatsNewDoc d) {
 		return d.update.equals(player.getPersistentDataContainer().get(seenKey, PersistentDataType.STRING));
 	}
 
-	/** Closing the menu, on any screen, counts as having read the current update. */
+	/**
+	 * Pages of the current update added since the player last closed it, by index. Empty when
+	 * they haven't seen this update at all (the whole thing is new, so nothing is singled out),
+	 * when doc isn't the current update, or when they closed it before 1.2.0 (no page list saved).
+	 */
+	Set<Integer> newPages(Player player, WhatsNewDoc d) {
+		Updates u = updates();
+		if (u.isEmpty() || !u.isLatest(d) || !hasSeen(player, d)) return Set.of();
+		String saved = player.getPersistentDataContainer().get(pagesKey, PersistentDataType.STRING);
+		if (saved == null) return Set.of();
+		Set<String> seen = new HashSet<>(List.of(saved.split("\n")));
+		Set<Integer> out = new LinkedHashSet<>();
+		for (int i = 0; i < d.pages.size(); i++) {
+			if (!seen.contains(pageKey(d.pages.get(i)))) out.add(i);
+		}
+		return out;
+	}
+
+	/** A page is known by its title, so editing its text (a typo) doesn't make it new again. */
+	private static String pageKey(WhatsNewDoc.Page page) {
+		return page.title().toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", " ").strip();
+	}
+
+	/** Closing the menu, on any screen, counts as having read the current update and all its pages. */
 	void markSeen(Player player) {
 		Updates u = updates();
 		if (player.isOnline() && !u.isEmpty()) {
-			player.getPersistentDataContainer().set(seenKey, PersistentDataType.STRING, u.latest().update);
+			WhatsNewDoc latest = u.latest();
+			var data = player.getPersistentDataContainer();
+			data.set(seenKey, PersistentDataType.STRING, latest.update);
+			data.set(pagesKey, PersistentDataType.STRING,
+					String.join("\n", latest.pages.stream().map(WhatsNewPlugin::pageKey).toList()));
 		}
+	}
+
+	/** Something to show on join: the whole update, or the pages added since they last read it. */
+	private boolean hasNews(Player player, WhatsNewDoc d) {
+		return !hasSeen(player, d) || !newPages(player, d).isEmpty();
 	}
 
 	// ---------- Showing it ----------
@@ -124,7 +164,7 @@ public final class WhatsNewPlugin extends JavaPlugin implements Listener {
 		if (!getConfig().getBoolean("show-on-join", true)) return;
 		Player player = event.getPlayer();
 		Updates u = updates();
-		if (u.isEmpty() || hasSeen(player, u.latest())) return;
+		if (u.isEmpty() || !hasNews(player, u.latest())) return;
 
 		// Brand-new players already get the welcome menus; the update news is old news to them
 		if (!player.hasPlayedBefore() && !getConfig().getBoolean("show-to-new-players", false)) {
@@ -135,7 +175,15 @@ public final class WhatsNewPlugin extends JavaPlugin implements Listener {
 		long delay = Math.max(1, getConfig().getLong("join-delay-seconds", 4) * 20);
 		getServer().getScheduler().runTaskLater(this, () -> {
 			Updates now = updates();
-			if (player.isOnline() && !now.isEmpty() && !hasSeen(player, now.latest())) openLatest(player);
+			if (!player.isOnline() || now.isEmpty()) return;
+			WhatsNewDoc latest = now.latest();
+			if (!hasSeen(player, latest)) {
+				openLatest(player);
+			} else {
+				// Pages added to the update they already read: open on the first new one
+				Set<Integer> fresh = newPages(player, latest);
+				if (!fresh.isEmpty()) open(player, latest, fresh.iterator().next());
+			}
 		}, delay);
 	}
 
